@@ -13,7 +13,7 @@
             llvm-as │
                     ▼
           ┌───────────────────┐
-          │LLVMBtte Code(.bc)│
+          │LLVM Byte Code(.bc)│
           └─────────┬─────────┘
                 llc │
                     ▼
