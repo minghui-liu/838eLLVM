@@ -22,6 +22,7 @@ main.o: main.c
 clean:
 	rm *.ll *.bc *.o *.s *.run 
 
-test: add1-40.run add1-add1-40.run
+test: add1-40.run add1-add1-40.run sub1-40.run
 	@test "$(shell ./add1-40.run)" = "41"
 	@test "$(shell ./add1-add1-40.run)" = "42"
+	@test "$(shell ./sub1-40.run)" = "39"
