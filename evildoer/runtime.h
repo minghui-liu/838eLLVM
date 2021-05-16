@@ -1,3 +1,3 @@
 int64_t entry();
-FILE* in;
-FILE* out;
+extern FILE* in;
+extern FILE* out;

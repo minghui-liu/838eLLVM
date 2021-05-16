@@ -4,6 +4,10 @@
 #include "types.h"
 #include "runtime.h"
 
+FILE* in;
+FILE* out;
+void (*error_handler)();
+
 void print_result(int64_t);
 void print_char(int64_t);
 
@@ -41,6 +45,6 @@ void print_result(int64_t result) {
     case val_void:
       /* nothing */ break;
     }
-  }  
+  }
 }
 

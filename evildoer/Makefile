@@ -17,7 +17,7 @@ io.o: io.c runtime.h
 	gcc -fPIC -c io.c -o io.o
 
 %.o: %.s
-	gcc -c $< -o $@ 
+	gcc -c $< -o $@
 
 %.s: %.bc
 	llc $< -o $@
@@ -29,4 +29,4 @@ io.o: io.c runtime.h
 	racket -t compile-file.rkt -m $< > $@
 
 clean:
-	rm *.ll *.bc *.o *.s *.run 
+	rm -f *.ll *.bc *.o *.s *.run

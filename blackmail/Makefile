@@ -8,7 +8,7 @@ main.o: main.c
 	gcc -c main.c -o main.o
 
 %.o: %.s
-	gcc -c $< -o $@ 
+	gcc -c $< -o $@
 
 %.s: %.bc
 	llc $< -o $@
@@ -20,7 +20,7 @@ main.o: main.c
 	racket -t compile-file.rkt -m $< > $@
 
 clean:
-	rm *.ll *.bc *.o *.s *.run 
+	rm -f *.ll *.bc *.o *.s *.run
 
 test: add1-40.run add1-add1-40.run sub1-40.run
 	@test "$(shell ./add1-40.run)" = "41"

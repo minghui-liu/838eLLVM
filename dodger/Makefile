@@ -11,7 +11,7 @@ char.o: char.c types.h
 	gcc -c char.c -o char.o
 
 %.o: %.s
-	gcc -c $< -o $@ 
+	gcc -c $< -o $@
 
 %.s: %.bc
 	llc $< -o $@
@@ -23,7 +23,7 @@ char.o: char.c types.h
 	racket -t compile-file.rkt -m $< > $@
 
 clean:
-	rm *.ll *.bc *.o *.s *.run 
+	rm -f *.ll *.bc *.o *.s *.run
 
 test: example.run example2.run
 	@test "$(shell ./example.run)" = "1024"

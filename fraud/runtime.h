@@ -1,4 +1,4 @@
 int64_t entry();
-FILE* in;
-FILE* out;
-void (*error_handler)();
+extern FILE* in;
+extern FILE* out;
+extern void (*error_handler)();
