@@ -117,7 +117,12 @@
                                0
                                (+ x (tri (sub1 x)))))
                          (tri 9)))
-                45))
+                45)
+
+  (check-equal? (run
+                 '(begin (define (f x) (box x))
+                         (f 5)))
+                (box 5)))
 
 (define (test-runner-io run)
   ;; Evildoer examples

@@ -12,9 +12,9 @@
          "declare i64 @read_byte()"
          "declare i64 @write_byte(i64)"
          "declare void @raise_error()"
+         "@top = internal global i64* null, align 8"
          "define i64 @entry(i64* %heap) {"
-         ('top . <- . (Alloca "i64*"))
-         (Store 'heap 'top "i64*")
+         (Store 'heap "@top" "i64*")
          c
          (Ret r)
          "}"
@@ -158,11 +158,11 @@
                  [p2 (gensym)]
                  [newtop (gensym)])
              (seq
-               (addr . <- . (Load 'top "i64*"))
+               (addr . <- . (Load "@top" "i64*"))
                (Store r1 addr)
                ; increment heap top ptr
                (newtop . <- . (Getelementptr addr 1))
-               (Store newtop 'top "i64*")
+               (Store newtop "@top" "i64*")
                ; pointer tagging
                (p1 . <- . (Getelementptr addr 0))
                (p2 . <- . (Ptrtoint p1))
@@ -219,13 +219,13 @@
                  [p2 (gensym)]
                  [newtop (gensym)])
              (seq
-               (addr1 . <- . (Load 'top "i64*"))      ; cdr
+               (addr1 . <- . (Load "@top" "i64*"))      ; cdr
                (addr2 . <- . (Getelementptr addr1 1)) ; car
                (Store r1 addr2)
                (Store r2 addr1)
                ; increment heap top ptr
                (newtop . <- . (Getelementptr addr1 2))
-               (Store newtop 'top "i64*")
+               (Store newtop "@top" "i64*")
                ; pointer tagging
                (p1 . <- . (Getelementptr addr1 0))
                (p2 . <- . (Ptrtoint p1))

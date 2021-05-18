@@ -5,7 +5,8 @@
 (define (value->string v)
   (cond
     [(symbol? v) (string-append "%" (symbol->string v))]
-    [(number? v) (number->string v)]))
+    [(number? v) (number->string v)]
+    [(string? v) v]))
 
 (define (seq . xs)
   (string-join
