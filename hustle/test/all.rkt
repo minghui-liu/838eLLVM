@@ -69,8 +69,8 @@
   (check-equal? (run '(let ((x 7)) (add1 x))) 8)
   (check-equal? (run '(let ((x (add1 7))) x)) 8)
   (check-equal? (run '(let ((x 7)) (let ((y 2)) x))) 7)
-  #| (check-equal? (run '(let ((x 7)) (let ((x 2)) x))) 2) |#
-  #| (check-equal? (run '(let ((x 7)) (let ((x (add1 x))) x))) 8) |#
+  (check-equal? (run '(let ((x 7)) (let ((x 2)) x))) 2)
+  (check-equal? (run '(let ((x 7)) (let ((x (add1 x))) x))) 8)
 
   (check-equal? (run '(let ((x 0))
                         (if (zero? x) 7 8)))
@@ -123,9 +123,7 @@
   (check-equal? (run '(let ((x 97)) (begin (peek-byte) x)) "b")
                 (cons 97 "")))
 
-(test-runner    (λ (e)
-                   (println e (current-error-port))
-                   (unload/free (asm-interp (compile (parse e))))))
+(test-runner    (λ (e) (unload/free (asm-interp (compile (parse e))))))
 (test-runner-io (λ (e s)
                   (match (asm-interp/io (compile (parse e)) s)
                     ['err 'err]

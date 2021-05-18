@@ -4,7 +4,7 @@
 
 ;; Expr -> LLVM IR
 (define (compile e)
-  (let-values ([(r c) (compile-e e)])
+  (let-values ([(r c) (compile-e e '())])
     (seq
       "declare i64 @peek_byte()"
       "declare i64 @read_byte()"
@@ -15,7 +15,7 @@
       (Ret r)
       "}")))
 
-;; Expr -> (Value, LLVM IR)
+;; Expr CEnv -> (Value, LLVM IR)
 ;; Each expression will be compiled into
 ;;   1. a Value, which can be either a register
 ;;      label or an immediate
@@ -37,19 +37,19 @@
 ;;       instructions))
 ;;
 ;; We are using Racket's multiple return value here.
-(define (compile-e e)
+(define (compile-e e env)
   (match e
     [(Int i)          (compile-imm i)]
     [(Bool b)         (compile-imm b)]
     [(Char c)         (compile-imm c)]
     [(Eof)            (compile-imm eof)]
-    [(Var x)          (compile-variable x)]
-    [(Prim0 p)        (compile-prim0 p)]
-    [(Prim1 p e)      (compile-prim1 p e)]
-    [(Prim2 p e1 e2)  (compile-prim2 p e1 e2)]
-    [(If e1 t f)      (compile-if e1 t f)]
-    [(Begin e1 e2)    (compile-begin e1 e2)]
-    [(Let x e1 e2)    (compile-let x e1 e2)]))
+    [(Var x)          (compile-variable x env)]
+    [(Prim0 p)        (compile-prim0 p env)]
+    [(Prim1 p e)      (compile-prim1 p e env)]
+    [(Prim2 p e1 e2)  (compile-prim2 p e1 e2 env)]
+    [(If e1 t f)      (compile-if e1 t f env)]
+    [(Begin e1 e2)    (compile-begin e1 e2 env)]
+    [(Let x e1 e2)    (compile-let x e1 e2 env)]))
 
 ;; return immediate
 (define-syntax-rule
@@ -67,12 +67,12 @@
   (ret-imm (imm->bits v)))
 
 ;; Id -> (Value, LLVM IR)
-(define (compile-variable x)
+(define (compile-variable x env)
   (ret-reg r
-    (r . <- . (Load x))))
+    (r . <- . (Load (lookup x env)))))
 
 ;; Op0 -> (Value, LLVM IR)
-(define (compile-prim0 p)
+(define (compile-prim0 p env)
   (ret-reg r
     (match p
       ['void       (r . <- . val-void)]
@@ -80,9 +80,9 @@
       ['peek-byte  (r . <- . (Call 'peek_byte "i64"))])))
 
 ;; Op Expr -> LLVM IR
-(define (compile-prim1 p e)
+(define (compile-prim1 p e env)
   (ret-reg r
-    (let-values ([(r1 c1) (compile-e e)])
+    (let-values ([(r1 c1) (compile-e e env)])
       (seq
         c1
         (match p
@@ -135,10 +135,10 @@
              (r . <- . val-void ))])))))
 
 ;; Op2 Expr Expr CEnv -> Asm
-(define (compile-prim2 p e1 e2)
+(define (compile-prim2 p e1 e2 env)
   (ret-reg r
-    (let-values ([(r1 c1) (compile-e e1)]
-                 [(r2 c2) (compile-e e2)])
+    (let-values ([(r1 c1) (compile-e e1 env)]
+                 [(r2 c2) (compile-e e2 env)])
       (seq
         c1
         c2
@@ -155,11 +155,11 @@
              (r . <- . (Sub r1 r2)))])))))
 
 ;; Expr Expr Expr -> LLVM IR
-(define (compile-if cnd t f)
+(define (compile-if cnd t f env)
   (ret-reg r
-    (let-values ([(rcond ccond) (compile-e cnd)]
-                 [(rt ct) (compile-e t)]
-                 [(rf cf) (compile-e f)]
+    (let-values ([(rcond ccond) (compile-e cnd env)]
+                 [(rt ct) (compile-e t env)]
+                 [(rf cf) (compile-e f env)]
                  [(ltrue) (gensym 'if)]
                  [(lfalse) (gensym 'if)]
                  [(lend) (gensym 'if)]
@@ -186,25 +186,26 @@
           (r . <- . (Load ret))))))
 
 ;; Expr Expr -> LLVM IR
-(define (compile-begin e1 e2)
+(define (compile-begin e1 e2 env)
   (ret-reg r
-    (let-values ([(r1 c1) (compile-e e1)]
-                 [(r2 c2) (compile-e e2)])
+    (let-values ([(r1 c1) (compile-e e1 env)]
+                 [(r2 c2) (compile-e e2 env)])
       (seq
         c1
         c2
         (r . <- . r2)))))
 
 ;; Id Expr Expr CEnv -> (Value, LLVM IR)
-(define (compile-let x e1 e2)
+(define (compile-let x e1 e2 env)
   (ret-reg r
-    (let-values ([(r1 c1) (compile-e e1)]
-                 [(r2 c2) (compile-e e2)])
+    (let*-values ([(r0)    (gensym 'var)]
+                  [(r1 c1) (compile-e e1 env)]
+                  [(r2 c2) (compile-e e2 (cons `(,x . ,r0) env))])
       (seq
-        (x . <- . (Alloca))
+        (r0 . <- . (Alloca))
         ; binding -> x
         c1
-        (Store r1 x)
+        (Store r1 r0)
         ; body -> return
         c2
         (r . <- . r2)))))
@@ -288,3 +289,14 @@
        (Br lend)
 
      (Label lend))))
+
+;; cenv is a mapping Symbol -> Symbol
+;; we need this because SSA doesn't allow
+;; varaible name shadowing
+(define (lookup x cenv)
+  (match cenv
+    ['() (error "undefined variable:" x)]
+    [(cons (cons v r) rest)
+     (match (eq? x v)
+       [#t r]
+       [#f (lookup x rest)])]))
