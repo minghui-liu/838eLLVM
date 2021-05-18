@@ -1,26 +1,33 @@
 #lang racket
 (provide (all-defined-out))
 
-(define int-shift      1)
-(define char-shift     2)
-(define type-int     #b0)
-(define mask-int     #b1)
-(define type-char   #b01)
-(define mask-char   #b11)
-(define val-true  #b0011)
-(define val-false #b0111)
-(define val-eof   #b1011)
-(define val-void  #b1111)
+(define imm-shift          3)
+(define imm-mask       #b111)
+(define ptr-mask       #b111)
+(define type-box       #b001)
+(define type-cons      #b010)
+(define int-shift  (+ 1 imm-shift))
+(define char-shift (+ 2 imm-shift))
+(define type-int      #b0000)
+(define mask-int      #b1111)
+(define type-char    #b01000)
+(define mask-char    #b11111)
+(define val-true   #b0011000)
+(define val-false  #b0111000)
+(define val-eof    #b1011000)
+(define val-void   #b1111000)
+(define val-empty #b10011000)
 
 (define (bits->imm b)
-  (cond [(= type-int (bitwise-and b #b1))
+  (cond [(= type-int (bitwise-and b mask-int))
          (arithmetic-shift b (- int-shift))]
-        [(= type-char (bitwise-and b #b11))
+        [(= type-char (bitwise-and b mask-char))
          (integer->char (arithmetic-shift b (- char-shift)))]
         [(= b val-true)  #t]
         [(= b val-false) #f]
         [(= b val-eof)  eof]
         [(= b val-void) (void)]
+        [(= b val-empty) '()]
         [else (error "invalid bits")]))
 
 (define (imm->bits v)
@@ -31,4 +38,20 @@
                       (arithmetic-shift (char->integer v) char-shift))]
         [(eq? v #t) val-true]
         [(eq? v #f) val-false]
-        [(void? v)  val-void]))
+        [(void? v)  val-void]
+        [(empty? v) val-empty]))
+
+(define (imm-bits? v)
+  (zero? (bitwise-and v imm-mask)))
+
+(define (int-bits? v)
+  (zero? (bitwise-and v mask-int)))
+
+(define (char-bits? v)
+  (= type-char (bitwise-and v mask-char)))
+
+(define (cons-bits? v)
+  (zero? (bitwise-xor (bitwise-and v imm-mask) type-cons)))
+
+(define (box-bits? v)
+  (zero? (bitwise-xor (bitwise-and v imm-mask) type-box)))

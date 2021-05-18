@@ -9,7 +9,8 @@
       "declare i64 @peek_byte()"
       "declare i64 @read_byte()"
       "declare i64 @write_byte(i64)"
-      "define i64 @entry() {"
+      "declare void @raise_error()"
+      "define i64 @entry(i64* %heap) {"
       c
       (Ret r)
       "}")))
@@ -86,12 +87,17 @@
         c1
         (match p
           ['add1
-           (r . <- . (Add r1 (imm->bits 1)))]
+           (seq
+             (assert-integer r1)
+             (r . <- . (Add r1 (imm->bits 1))))]
           ['sub1
-           (r . <- . (Sub r1 (imm->bits 1)))]
+           (seq
+             (assert-integer r1)
+             (r . <- . (Sub r1 (imm->bits 1))))]
           ['zero?
            (let ([rcmp (gensym 'cmp)])
              (seq
+               (assert-integer r1)
                (rcmp . <- . (Eq r1 0))
                (r . <- . (Select rcmp val-true val-false))))]
           ['char?
@@ -106,12 +112,14 @@
           ['char->integer
            (let ([v1 (gensym)])
              (seq
+               (assert-char r1)
                (v1 . <- . (Ashr r1 char-shift))
                (r  . <- . (Shl v1 int-shift))))]
           ['integer->char
            (let ([v1 (gensym)]
                  [v2 (gensym)])
              (seq
+               (assert-codepoint r1)
                (v1 . <- . (Ashr r1 int-shift))
                (v2 . <- . (Shl  v1 char-shift))
                (r  . <- . (Xor  v2 type-char))))]
@@ -122,8 +130,9 @@
                (r . <- . (Select rcmp val-true val-false))))]
           ['write-byte
            (seq
+             (assert-byte r1)
              (Call 'write_byte "i64" r1)
-             (r . <- . val-void))])))))
+             (r . <- . val-void ))])))))
 
 ;; Op2 Expr Expr CEnv -> Asm
 (define (compile-prim2 p e1 e2)
@@ -134,13 +143,21 @@
         c1
         c2
         (match p
-          ['+ (r . <- . (Add r1 r2))]
-          ['- (r . <- . (Sub r1 r2))])))))
+          ['+
+           (seq
+             (assert-integer r1)
+             (assert-integer r2)
+             (r . <- . (Add r1 r2)))]
+          ['-
+           (seq
+             (assert-integer r1)
+             (assert-integer r2)
+             (r . <- . (Sub r1 r2)))])))))
 
 ;; Expr Expr Expr -> LLVM IR
 (define (compile-if cnd t f)
   (ret-reg r
-    (let-values ([(rcnd ccnd) (compile-e cnd)]
+    (let-values ([(rcond ccond) (compile-e cnd)]
                  [(rt ct) (compile-e t)]
                  [(rf cf) (compile-e f)]
                  [(ltrue) (gensym 'if)]
@@ -151,9 +168,9 @@
       (seq
         (ret . <- . (Alloca))
 
-        ccnd
-        (rcmp . <- . (Eq rcnd val-true))
-        (Br rcmp ltrue lfalse)
+        ccond
+        (rcmp . <- . (Eq rcond val-false))
+        (Br rcmp lfalse ltrue)
 
         (Label ltrue)
           ct
@@ -169,7 +186,7 @@
           (r . <- . (Load ret))))))
 
 ;; Expr Expr -> LLVM IR
-(define (compile-begin e1 e2 r)
+(define (compile-begin e1 e2)
   (ret-reg r
     (let-values ([(r1 c1) (compile-e e1)]
                  [(r2 c2) (compile-e e2)])
@@ -191,3 +208,83 @@
         ; body -> return
         c2
         (r . <- . r2)))))
+
+(define (assert-type mask type)
+  (λ (arg)
+     (let ([r1   (gensym)]
+           [rcmp (gensym 'cmp)]
+           [lerr (gensym 'assert)]
+           [lend (gensym 'assert)])
+       (seq
+         (r1 . <- . (And arg mask))
+         (rcmp . <- . (Eq r1 type))
+         (Br rcmp lend lerr)
+
+         (Label lerr)
+          (Call 'raise_error "void")
+          (Br lend)
+
+         (Label lend)))))
+
+(define assert-integer
+  (assert-type mask-int type-int))
+(define assert-char
+  (assert-type mask-char type-char))
+(define assert-box
+  (assert-type ptr-mask type-box))
+(define assert-cons
+  (assert-type ptr-mask type-cons))
+
+(define (assert-byte arg)
+ (let ([rcmp1 (gensym 'cmp)]
+       [rcmp2 (gensym 'cmp)]
+       [lerr  (gensym 'assert)]
+       [l1    (gensym 'assert)]
+       [lend  (gensym 'assert)])
+   (seq
+     (assert-integer arg)
+     (rcmp1 . <- . (Lt arg (imm->bits 0)))
+     (Br rcmp1 lerr l1)
+
+     (Label l1)
+       (rcmp2 . <- . (Gt arg (imm->bits 255)))
+       (Br rcmp2 lerr lend)
+
+     (Label lerr)
+       (Call 'raise_error "void")
+       (Br lend)
+
+     (Label lend))))
+
+(define (assert-codepoint arg)
+ (let ([rcmp1 (gensym 'cmp)]
+       [rcmp2 (gensym 'cmp)]
+       [rcmp3 (gensym 'cmp)]
+       [rcmp4 (gensym 'cmp)]
+       [lerr  (gensym 'assert)]
+       [l1    (gensym 'assert)]
+       [l2    (gensym 'assert)]
+       [l3    (gensym 'assert)]
+       [lend  (gensym 'assert)])
+   (seq
+     (assert-integer arg)
+     (rcmp1 . <- . (Lt arg (imm->bits 0)))
+     (Br rcmp1 lerr l1)      ; x < 0 -> err
+
+     (Label l1)
+       (rcmp2 . <- . (Gt arg (imm->bits 1114111)))
+       (Br rcmp2 lerr l2)    ; x > 1114111 -> err
+
+     (Label l2)
+       (rcmp3 . <- . (Lt arg (imm->bits 55295)))
+       (Br rcmp3 lend l3)    ; x < 55295 -> ok
+
+     (Label l3)
+       (rcmp4 . <- . (Gt arg (imm->bits 57344)))
+       (Br rcmp4 lend lerr)  ; x > 57344 -> ok
+
+     (Label lerr)
+       (Call 'raise_error "void")
+       (Br lend)
+
+     (Label lend))))

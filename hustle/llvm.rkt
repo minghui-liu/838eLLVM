@@ -31,6 +31,8 @@
 (define-binop Add "add")
 (define-binop Sub "sub")
 (define-binop Eq "icmp eq")
+(define-binop Gt "icmp sgt")
+(define-binop Lt "icmp slt")
 (define-binop And "and")
 (define-binop Xor "xor")
 (define-binop Ashr "ashr")
@@ -83,4 +85,7 @@
 ;; v: string
 (define (r . <- . v)
   (string-append
-    (value->string r) " = " v))
+    (value->string r) " = "
+    (if (string? v)
+      v
+      (Add 0 v))))
