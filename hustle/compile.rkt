@@ -131,6 +131,11 @@
              (seq
                (rcmp . <- . (Eq r1 val-eof))
                (r . <- . (Select rcmp val-true val-false))))]
+          ['empty?
+           (let ([rcmp (gensym 'cmp)])
+             (seq
+               (rcmp . <- . (Eq r1 val-empty))
+               (r . <- . (Select rcmp val-true val-false))))]
           ['write-byte
            (seq
              (assert-byte r1)
@@ -158,7 +163,27 @@
                ; pointer tagging
                (p1 . <- . (Getelementptr addr 0))
                (p2 . <- . (Ptrtoint p1))
-               (r  . <- . (Or p2 type-box))))])))))
+               (r  . <- . (Or p2 type-box))))]
+          ['car
+           (let ([v1 (gensym)]
+                 [addr1 (gensym)]
+                 [addr2 (gensym)])
+             (seq
+               (assert-cons r1)
+               (v1 . <- . (Xor r1 type-cons))
+               ; r = *(p+1)
+               (addr1 . <- . (Inttoptr v1))
+               (addr2 . <- . (Getelementptr addr1 1))
+               (r  . <- . (Load addr2))))]
+          ['cdr
+           (let ([v1 (gensym)]
+                 [addr (gensym)])
+             (seq
+               (assert-cons r1)
+               (v1 . <- . (Xor r1 type-cons))
+               ; r = *p
+               (addr . <- . (Inttoptr v1))
+               (r  . <- . (Load addr))))])))))
 
 ;; Op2 Expr Expr CEnv -> Asm
 (define (compile-prim2 p e1 e2 env)
@@ -183,7 +208,25 @@
            (let ([rcmp (gensym 'cmp)])
              (seq
                (rcmp . <- . (Eq r1 r2))
-               (r . <- . (Select rcmp val-true val-false))))])))))
+               (r . <- . (Select rcmp val-true val-false))))]
+          ['cons
+           (let ([addr1 (gensym)]
+                 [addr2 (gensym)]
+                 [p1 (gensym)]
+                 [p2 (gensym)]
+                 [newtop (gensym)])
+             (seq
+               (addr1 . <- . (Load 'top "i64*"))      ; cdr
+               (addr2 . <- . (Getelementptr addr1 1)) ; car
+               (Store r1 addr2)
+               (Store r2 addr1)
+               ; increment heap top ptr
+               (newtop . <- . (Getelementptr addr1 2))
+               (Store newtop 'top "i64*")
+               ; pointer tagging
+               (p1 . <- . (Getelementptr addr1 0))
+               (p2 . <- . (Ptrtoint p1))
+               (r  . <- . (Or p2 type-cons))))])))))
 
 ;; Expr Expr Expr -> LLVM IR
 (define (compile-if cnd t f env)
