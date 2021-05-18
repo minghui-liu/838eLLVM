@@ -28,4 +28,4 @@ jobs:
         llc --version
         gcc --version
     - name: Run tests
-      run: raco test .
+      run: raco test ./iniquity
