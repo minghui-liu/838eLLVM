@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
   heap = calloc(8*heap_size, 1);
 
   print_result(entry(heap));
+  putchar('\n');
 
   free(heap);
   return 0;
