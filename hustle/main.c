@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
 
 void print_result(int64_t result) {
   if (cons_type_tag == (ptr_type_mask & result)) {
-    printf("(");
+    printf("'(");
     print_cons(result);
     printf(")");
   } else if (box_type_tag == (ptr_type_mask & result)) {
@@ -58,7 +58,7 @@ void print_result(int64_t result) {
     case val_eof:
       printf("#<eof>"); break;
     case val_empty:
-      printf("()"); break;
+      printf("'()"); break;
     case val_void:
       /* nothing */ break;
     }

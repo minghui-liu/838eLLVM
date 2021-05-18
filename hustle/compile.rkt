@@ -11,6 +11,8 @@
       "declare i64 @write_byte(i64)"
       "declare void @raise_error()"
       "define i64 @entry(i64* %heap) {"
+      ('top . <- . (Alloca "i64*"))
+      (Store 'heap 'top "i64*")
       c
       (Ret r)
       "}")))
@@ -43,6 +45,7 @@
     [(Bool b)         (compile-imm b)]
     [(Char c)         (compile-imm c)]
     [(Eof)            (compile-imm eof)]
+    [(Empty)          (compile-imm '())]
     [(Var x)          (compile-variable x env)]
     [(Prim0 p)        (compile-prim0 p env)]
     [(Prim1 p e)      (compile-prim1 p e env)]
@@ -132,7 +135,30 @@
            (seq
              (assert-byte r1)
              (Call 'write_byte "i64" r1)
-             (r . <- . val-void ))])))))
+             (r . <- . val-void ))]
+          ['unbox
+           (let ([v1 (gensym)]
+                 [addr (gensym)])
+             (seq
+               (assert-box r1)
+               (v1 . <- . (Xor r1 type-box))
+               (addr . <- . (Inttoptr v1))
+               (r  . <- . (Load addr))))]
+          ['box
+           (let ([addr (gensym)]
+                 [p1 (gensym)]
+                 [p2 (gensym)]
+                 [newtop (gensym)])
+             (seq
+               (addr . <- . (Load 'top "i64*"))
+               (Store r1 addr)
+               ; increment heap top ptr
+               (newtop . <- . (Getelementptr addr 1))
+               (Store newtop 'top "i64*")
+               ; pointer tagging
+               (p1 . <- . (Getelementptr addr 0))
+               (p2 . <- . (Ptrtoint p1))
+               (r  . <- . (Or p2 type-box))))])))))
 
 ;; Op2 Expr Expr CEnv -> Asm
 (define (compile-prim2 p e1 e2 env)
@@ -152,7 +178,12 @@
            (seq
              (assert-integer r1)
              (assert-integer r2)
-             (r . <- . (Sub r1 r2)))])))))
+             (r . <- . (Sub r1 r2)))]
+          ['eq?
+           (let ([rcmp (gensym 'cmp)])
+             (seq
+               (rcmp . <- . (Eq r1 r2))
+               (r . <- . (Select rcmp val-true val-false))))])))))
 
 ;; Expr Expr Expr -> LLVM IR
 (define (compile-if cnd t f env)

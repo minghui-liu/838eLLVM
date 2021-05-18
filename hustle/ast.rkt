@@ -1,25 +1,29 @@
 #lang racket
-(provide Eof Int Bool Char Prim0 Prim1 Prim2 If Begin Let Var)
+(provide Eof Empty Int Bool Char Prim0 Prim1 Prim2 If Begin Let Var)
 
-;; type Expr =
-;; | (Eof)
-;; | (Int Integer)
-;; | (Bool Boolean)
-;; | (Char Character)
-;; | (Prim0 Op0)
-;; | (Prim1 Op1 Expr)
-;; | (Prim1 Op2 Op2 Expr)
-;; | (If Expr Expr Expr)
-;; | (Begin Expr Expr)
-;; | (Let Id Expr Expr)
-;; | (Var Id)
-;; type Id  = Symbol
-;; type Op0 = 'read-byte
-;; type Op1 = 'add1 | 'sub1 | 'zero?
-;;          | 'char? | 'integer->char | 'char->integer
-;;          | 'write-byte | 'eof-object?
-;; type Op2 = '+ | '-
+;; type Expr = (Eof)
+;;           | (Empty)
+;;           | (Int Integer)
+;;           | (Bool Boolean)
+;;           | (Char Character)
+;;           | (Prim0 Op0)
+;;           | (Prim1 Op1 Expr)
+;;           | (Prim2 Op2 Expr Expr)
+;;           | (If Expr Expr Expr)
+;;           | (Begin Expr Expr)
+;;           | (Let Id Expr Expr)
+;;           | (Var Id)
+;; type Id   = Symbol
+;; type Op0  = 'read-byte
+;; type Op1  = 'add1 | 'sub1 | 'zero?
+;;           | 'char? | 'integer->char | 'char->integer
+;;           | 'write-byte | 'eof-object?
+;;           | 'box | 'car | 'cdr | 'unbox
+;;           | 'empty?
+;; type Op2  = '+ | '- | 'eq?
+;;           | 'cons
 (struct Eof   ()         #:prefab)
+(struct Empty ()         #:prefab)
 (struct Int   (i)        #:prefab)
 (struct Bool  (b)        #:prefab)
 (struct Char  (c)        #:prefab)

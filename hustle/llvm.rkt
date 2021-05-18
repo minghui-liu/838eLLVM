@@ -35,13 +35,15 @@
 (define-binop Lt "icmp slt")
 (define-binop And "and")
 (define-binop Xor "xor")
+(define-binop Or "or")
 (define-binop Ashr "ashr")
 (define-binop Shl "shl")
 
-(provide Alloca Br Store Load Select Call <- Ret Label)
+(provide Alloca Br Store Load Select Call <- Ret Label Getelementptr
+         Bitcast Ptrtoint Inttoptr)
 
-(define (Alloca)
-  "alloca i64, align 8")
+(define (Alloca [type "i64"])
+  (string-append "alloca " type ", align 8"))
 
 (define (Br r . ls)
   (match ls
@@ -51,13 +53,13 @@
                     "label " (value->string l1) ", "
                     "label " (value->string l2))]))
 
-(define (Store val to)
-  (string-append "store i64 "
-                 (value->string val) ", i64* " (value->string to)
+(define (Store val to [type "i64"])
+  (string-append "store " type " "
+                 (value->string val) ", " type "* " (value->string to)
                  ", align 8"))
 
-(define (Load from)
-  (string-append "load i64, i64* " (value->string from) ", align 8"))
+(define (Load from [type "i64"])
+  (string-append "load " type ", " type "* " (value->string from) ", align 8"))
 
 (define (Select cnd v1 v2)
   (string-append
@@ -77,8 +79,22 @@
 (define (Ret v)
   (string-append "ret i64 " (value->string v)))
 
+(define (Getelementptr p offset)
+  (string-append "getelementptr i64, "
+                 "i64* " (value->string p) ", "
+                 "i64 " (value->string offset)))
+
 (define (Label l)
   (string-append (symbol->string l) ":"))
+
+(define (Bitcast v from to)
+  (string-append "bitcast " from " " (value->string v) " to " to))
+
+(define (Ptrtoint p)
+  (string-append "ptrtoint i64* " (value->string p) " to i64"))
+
+(define (Inttoptr i)
+  (string-append "inttoptr i64 " (value->string i) " to i64*"))
 
 ;; assignment
 ;; r: register
