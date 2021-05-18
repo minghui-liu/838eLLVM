@@ -67,8 +67,6 @@
 (define-syntax-rule
   (ret-reg r body)
   (let ([r (gensym 'ret)])
-    (println r (current-error-port))
-    (println body (current-error-port))
     (values r body)))
 
 ;; Immediate -> (Value, LLVM IR)
@@ -295,7 +293,7 @@
            [cs (map cdr rcs)]
            [xs (map (λ (x)
                        (if (symbol? x)
-                         (lookup x env)
+                           (lookup x env)
                          x)) rs)])
       (seq
         cs
@@ -414,7 +412,7 @@
 ;; varaible name shadowing
 (define (lookup x cenv)
   (match cenv
-    ['() (error "undefined variable:" x)]
+    ['() x]
     [(cons (cons v r) rest)
      (match (eq? x v)
        [#t r]
