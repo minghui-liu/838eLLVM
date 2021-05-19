@@ -154,8 +154,7 @@
                (r  . <- . (Load addr))))]
           ['box
            (let ([addr (gensym)]
-                 [p1 (gensym)]
-                 [p2 (gensym)]
+                 [p (gensym)]
                  [newtop (gensym)])
              (seq
                (addr . <- . (Load "@top" "i64*"))
@@ -164,9 +163,8 @@
                (newtop . <- . (Getelementptr addr 1))
                (Store newtop "@top" "i64*")
                ; pointer tagging
-               (p1 . <- . (Getelementptr addr 0))
-               (p2 . <- . (Ptrtoint p1))
-               (r  . <- . (Or p2 type-box))))]
+               (p . <- . (Ptrtoint addr))
+               (r  . <- . (Or p type-box))))]
           ['car
            (let ([v1 (gensym)]
                  [addr1 (gensym)]
@@ -215,8 +213,7 @@
           ['cons
            (let ([addr1 (gensym)]
                  [addr2 (gensym)]
-                 [p1 (gensym)]
-                 [p2 (gensym)]
+                 [p (gensym)]
                  [newtop (gensym)])
              (seq
                (addr1 . <- . (Load "@top" "i64*"))      ; cdr
@@ -227,9 +224,8 @@
                (newtop . <- . (Getelementptr addr1 2))
                (Store newtop "@top" "i64*")
                ; pointer tagging
-               (p1 . <- . (Getelementptr addr1 0))
-               (p2 . <- . (Ptrtoint p1))
-               (r  . <- . (Or p2 type-cons))))])))))
+               (p . <- . (Ptrtoint addr1))
+               (r  . <- . (Or p type-cons))))])))))
 
 ;; Expr Expr Expr -> LLVM IR
 (define (compile-if cnd t f env)
