@@ -418,7 +418,7 @@
 (define (symbol->label s)
   (string->symbol
    (string-append
-    "label_"
+    "func_"
     (list->string
      (map (λ (c)
             (if (or (char<=? #\a c #\z)
