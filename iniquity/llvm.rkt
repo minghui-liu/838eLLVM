@@ -41,7 +41,7 @@
 (define-binop Shl "shl")
 
 (provide Alloca Br Store Load Select Call <- Ret Label Getelementptr
-         Bitcast Ptrtoint Inttoptr Define)
+         Bitcast Ptrtoint Inttoptr Define Fastcall)
 
 (define (Alloca [type "i64"])
   (string-append "alloca " type ", align 8"))
@@ -77,6 +77,15 @@
       ", ")
     ")"))
 
+(define (Fastcall f rettype . args)
+  (string-append
+    "call fastcc " rettype " @" (symbol->string f) "("
+    (string-join
+      (map (λ (x) (string-append "i64 " (value->string x)))
+           args)
+      ", ")
+    ")"))
+
 (define (Ret v)
   (string-append "ret i64 " (value->string v)))
 
@@ -99,7 +108,7 @@
 
 (define (Define f args r c)
   (seq
-    (string-append "define i64 @" (symbol->string f) "("
+    (string-append "define fastcc i64 @" (symbol->string f) "("
       (string-join
         (map (λ (x) (string-append "i64 " (value->string x)))
              args)

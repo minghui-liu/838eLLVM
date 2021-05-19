@@ -297,7 +297,7 @@
                          x)) rs)])
       (seq
         cs
-        (r . <- . (apply (curry Call (symbol->label f) "i64") xs))))))
+        (r . <- . (apply (curry Fastcall (symbol->label f) "i64") xs))))))
 
 (define (compile-es es env)
   (match es

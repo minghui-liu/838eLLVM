@@ -13,6 +13,7 @@ io.o: runtime.h
 
 %.ll: %.rkt $(wildcard *.rkt)
 	racket -t compile-file.rkt -m $< > $@
+#	opt -O3 -S -o $@ $@
 
 # x86 backend: .ll -> .o -> .run
 
@@ -48,5 +49,6 @@ runtime.wo: $(objs_wasm)
 
 clean:
 	rm -f *.ll *.o *.run *.wo *.wasm
+	rm -f bench/*.run bench/*.wasm
 
 .PHONY: clean
