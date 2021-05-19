@@ -286,14 +286,10 @@
   (ret-reg r
     (let* ([rcs (compile-es es env)]
            [rs (map car rcs)]
-           [cs (map cdr rcs)]
-           [xs (map (λ (x)
-                       (if (symbol? x)
-                           (lookup x env)
-                         x)) rs)])
+           [cs (map cdr rcs)])
       (seq
         cs
-        (r . <- . (apply (curry Fastcall (symbol->label f) "i64") xs))))))
+        (r . <- . (apply (curry Fastcall (symbol->label f) "i64") rs))))))
 
 (define (compile-es es env)
   (match es
@@ -408,7 +404,7 @@
 ;; varaible name shadowing
 (define (lookup x cenv)
   (match cenv
-    ['() x]
+    ['() 'err]
     [(cons (cons v r) rest)
      (match (eq? x v)
        [#t r]
